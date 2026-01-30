@@ -1,0 +1,26 @@
+# core/model.py
+from dashscope import Generation
+import dashscope
+
+def call_qwen(api_key, system_prompt, user_content, model="qwen-turbo"):
+    """调用通义千问 API"""
+    if not api_key.strip():
+        return "❌ 请提供 DashScope API Key"
+    
+    dashscope.api_key = api_key
+    try:
+        response = Generation.call(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            temperature=0.9,
+            result_format='message'
+        )
+        if response.status_code == 200:
+            return response.output.choices[0].message.content
+        else:
+            return f"❌ API 错误: {response.code} - {response.message}"
+    except Exception as e:
+        return f"❌ 请求失败: {str(e)}"
