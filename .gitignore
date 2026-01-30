@@ -1,0 +1,15 @@
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyi
+*.py[co]
+
+# 忽略临时文件
+*.tmp
+*.bak
+*~
+.*~
+._*
+4.20
