@@ -1,0 +1,77 @@
+# core/roles.py
+import os
+import yaml
+
+def _is_valid_role(role):
+    """验证角色是否有效"""
+    return (
+        isinstance(role, dict) and
+        "name" in role and
+        "system_prompt" in role
+    )
+
+def load_all_roles():
+    """加载 system_roles/ 下的所有角色（支持单文件多角色或多个文件）"""
+    roles = []
+    
+    # 确保目录存在
+    os.makedirs("system_roles", exist_ok=True)
+    os.makedirs("user_roles", exist_ok=True)
+    
+    # 遍历 system_roles/ 下所有 .yaml 文件
+    for filename in os.listdir("system_roles"):
+        if not filename.endswith(".yaml"):
+            continue
+            
+        filepath = f"system_roles/{filename}"
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                
+                # 情况1: 文件包含角色列表（如 all_roles.yaml）
+                if isinstance(data, list):
+                    for role in data:
+                        if _is_valid_role(role):
+                            roles.append(role)
+                
+                # 情况2: 文件是单个角色（兼容旧格式）
+                elif isinstance(data, dict) and _is_valid_role(data):
+                    roles.append(data)
+                    
+        except Exception as e:
+            print(f"⚠️ 加载角色文件失败: {filepath} - {e}")
+    
+    # 加载用户自定义角色
+    for filename in os.listdir("user_roles"):
+        if filename.endswith(".yaml"):
+            try:
+                with open(f"user_roles/{filename}", "r", encoding="utf-8") as f:
+                    role = yaml.safe_load(f)
+                    if _is_valid_role(role):
+                        roles.append(role)
+            except Exception as e:
+                print(f"⚠️ 加载用户角色失败: {filename} - {e}")
+    
+    return roles
+
+def save_custom_role(name, description, system_prompt):
+    """保存用户自定义角色到 user_roles/"""
+    if not name or not system_prompt:
+        return False, "名称和提示词不能为空"
+    
+    # 安全处理文件名
+    safe_name = "".join(c for c in name if c.isalnum() or c in " _-")
+    filename = f"user_roles/{safe_name}.yaml"
+    
+    role_data = {
+        "name": name,
+        "description": description or "自定义评审角色",
+        "system_prompt": system_prompt
+    }
+    
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            yaml.dump(role_data, f, allow_unicode=True, default_flow_style=False)
+        return True, f"✅ 角色 '{name}' 已保存！请刷新页面使用。"
+    except Exception as e:
+        return False, f"❌ 保存失败: {str(e)}"
