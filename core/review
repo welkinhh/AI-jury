@@ -1,0 +1,31 @@
+# core/review.py
+import json
+from .model import call_qwen
+
+def process_reviews(content, selected_roles, api_key, model):
+    """处理多个角色的评审"""
+    if not content.strip():
+        return "⚠️ 请粘贴文案内容"
+    if not api_key.strip():
+        return "🔑 请在下方输入你的 DashScope API Key"
+    if not selected_roles:
+        return "👥 请至少选择一个评审角色"
+    
+    results = []
+    for role in selected_roles:
+        system_prompt = role.get("system_prompt", "你是一位专业评审。")
+        response = call_qwen(api_key, system_prompt, content, model)
+        
+        # 尝试解析 JSON
+        try:
+            data = json.loads(response)
+            score = data.get("score", "N/A")
+            comment = data.get("comment", response)
+        except:
+            # 如果不是 JSON，截取前100字
+            score = "N/A"
+            comment = response[:100] + "..." if len(response) > 100 else response
+        
+        results.append(f"**{role['name']}**：{score}/10 — {comment}")
+    
+    return "\n\n".join(results)
